@@ -1,5 +1,4 @@
 import digitalocean
-import configparser
 import requests
 import os
 
@@ -10,7 +9,7 @@ for line in open('.env'):
 
 token = os.environ['DIGITALOCEAN_ACCESS_TOKEN']
 domain_name = os.environ['DOMAIN']
-id_list = [156451837, 156452123]
+id_list = os.environ['ID_LIST'].split(" ")
 
 def getip():
     return(requests.get("http://www.myexternalip.com/raw").text)

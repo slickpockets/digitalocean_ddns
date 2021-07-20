@@ -1,57 +1,74 @@
 import digitalocean
 import requests
-import os
+import subprocess
+import shlex
+import time
 
-for line in open('.env'):
-    var = line.strip().split('=')
-    if len(var) == 2:
-        os.environ[var[0]] = var[1]
+from dotenv import dotenv_values
+config = dotenv_values('.env')
 
-token = os.environ['DIGITALOCEAN_ACCESS_TOKEN']
-domain_name = os.environ['DOMAIN']
-id_list = os.environ['ID_LIST'].split(" ")
+TOKEN = config['DIGITALOCEAN_ACCESS_TOKEN']
+DOMAIN = config['DOMAIN']
+ID_LIST = config['ID_LIST'].split(" ")
+
+
+def timeit(function):
+    '''generalized time function'''
+    t0 = time.time()
+    function()
+    t1=time.time()
+    return(t1-t0)
 
 def getip():
+    '''function to check the ip address of current local computer'''
     return(requests.get("http://www.myexternalip.com/raw").text)
 
-def updateip(ip_new, domain_name, token):
-    domain = digitalocean.Domain(token=token, name=domain_name)
-    records = domain.get_records()
-    id = None
-    for r in records:
-        if r.id in id_list:
-            r.data = ip_new
-            r.save()
 
-def filewrite(file='ip.txt', data=''):
-    with open(file, 'w') as f:
-        f.write(data)
-        f.close()
-
-def fileread(file='ip.txt'):
-    ip = None
+def dig(domain=DOMAIN):
+    '''function to check the ip address of domain provided'''
+    #setting cmd to pass to bash, dig + domain +short to only get ip
+    cmd = 'dig {} +short'.format(domain)
+    #passing to subprocess, piping output to proc
+    proc=subprocess.Popen(shlex.split(cmd),stdout=subprocess.PIPE)
+    #getting output and error from commincation
+    out,err=proc.communicate()
+    #catching errors and handling them poorly
     try:
-        with open(file, 'r') as f:
-            ip = f.readline()
-            f.close()
-            return(ip)
-    except FileNotFoundError:
-        print('ip file doesnt exist, creating it')
-        ip='doesnt matter'
-        filewrite(file, data=ip)
-        return(ip)
+        return(out.decode('utf-8').strip("\n"))
+    except NameError:
+        return(err.decode('utf-8'))
 
 
 
-def checkip(ip_old=fileread().strip('\n'), ip_new=getip(), domain_name=domain_name, token=token):
-    if str(ip_old) == str(ip_new):
-        return("same")
-    else:
-        print('ip changed, updating ip {} to {} for {}'.format(ip_old, ip_new, domain_name))
-        updateip(ip_new, domain_name, token)
-        print('updated digital ocean, writing data to file')
-        filewrite(file='ip.txt', data=ip_new)
-        return("updated")
+def update(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
+    '''update digital ocean domain form id list'''
+    #create connection
+    connection =    digitalocean.Domain(token=token, name=domain)
+    #get records
+    records = connection.get_records()
+    #id is passed to return at the end, sets to true if its updated, otherwise its false, so you can check if its passed successfully
+    id = None
+    #loop thru records
+    for r in records:
+        #if the dns entry id number matches a  number in the id list, it will udpate it with the getip() funciton
+        if r.id in id_list:
+            r.data = getip()
+            r.save()
+            id = True
+        elif r is records[-1]:
+            #prints nothing
+            id = False
+    #return true to handle logic
+    return(id)
+
+
+def main(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
+    check = update()
+    if check == False:
+        return("local and {} ip match".format(domain))
+    elif check == True:
+        return("updated {} to new address".format(domain))
+
 
 if __name__ == "__main__":
-    checkip(ip_old=fileread().strip('\n'), ip_new=getip(), domain_name=domain_name, token=token)
+    main()

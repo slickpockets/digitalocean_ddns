@@ -9,7 +9,12 @@ config = dotenv_values('.env')
 
 TOKEN = config['DIGITALOCEAN_ACCESS_TOKEN']
 DOMAIN = config['DOMAIN']
-ID_LIST = config['ID_LIST'].split(" ")
+#empty list to cast to int
+ID_LIST = []
+#looping over config to grab str ids
+lst = config['ID_LIST'].split(" ")
+for i in lst:
+    ID_LIST.append(int(i))
 
 
 def timeit(function):
@@ -18,6 +23,17 @@ def timeit(function):
     function()
     t1=time.time()
     return(t1-t0)
+
+def testing(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
+    conn = digitalocean.Domain(token=TOKEN, name=DOMAIN)
+    records = conn.get_records()
+    for r in records:
+        print(r.name, r.domain, r.type, r.data, r.id)
+
+
+def printit():
+    return("local ip {} and dns dig {}".format(getip(), dig()))
+
 
 def getip():
     '''function to check the ip address of current local computer'''
@@ -43,7 +59,7 @@ def dig(domain=DOMAIN):
 def update(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
     '''update digital ocean domain form id list'''
     #create connection
-    connection =    digitalocean.Domain(token=token, name=domain)
+    connection = digitalocean.Domain(token=token, name=domain)
     #get records
     records = connection.get_records()
     #id is passed to return at the end, sets to true if its updated, otherwise its false, so you can check if its passed successfully
@@ -62,12 +78,28 @@ def update(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
     return(id)
 
 
+def check(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
+    '''function to check local and dns ip address'''
+    if getip() == dig():
+        return(True)
+    else:
+        return(False)
+
 def main(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
-    check = update()
-    if check == False:
-        return("local and {} ip match".format(domain))
-    elif check == True:
-        return("updated {} to new address".format(domain))
+    '''main function to call on script, to execute all scripts in order'''
+    compare = check()
+    if compare == True:
+        #check weather ips match, if true, print they match
+        print("local and {} ip match".format(domain))
+    else:
+        #if ips dont match, push update to digitalocean
+        pushupdate = update()
+        if pushupdate == True:
+            #cathcing weather there was a problem
+            print("no update made to {} domain".format(domain))
+        elif pushupdate == False:
+            #here we go
+            print("updated {} to new address".format(domain))
 
 
 if __name__ == "__main__":

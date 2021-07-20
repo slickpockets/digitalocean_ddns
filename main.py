@@ -3,6 +3,7 @@ import requests
 import subprocess
 import shlex
 import time
+import datetime
 
 from dotenv import dotenv_values
 config = dotenv_values('.env')
@@ -32,7 +33,8 @@ def testing(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
 
 
 def printit():
-    return("local ip {} and dns dig {}".format(getip(), dig()))
+    print(datetime.datetime.now())
+    print("local ip {} and dns dig {}".format(getip(), dig()))
 
 
 def getip():
@@ -104,3 +106,4 @@ def main(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
 
 if __name__ == "__main__":
     main()
+    printit()

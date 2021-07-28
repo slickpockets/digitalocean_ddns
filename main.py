@@ -6,7 +6,7 @@ import time
 import datetime
 
 from dotenv import dotenv_values
-config = dotenv_values('.env')
+config = dotenv_values('/.env')
 
 TOKEN = config['DIGITALOCEAN_ACCESS_TOKEN']
 DOMAIN = config['DOMAIN']

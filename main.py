@@ -4,9 +4,10 @@ import subprocess
 import shlex
 import time
 import datetime
+import dns.resolver
 
 from dotenv import dotenv_values
-config = dotenv_values('/.env')
+config = dotenv_values('.env')
 
 TOKEN = config['DIGITALOCEAN_ACCESS_TOKEN']
 DOMAIN = config['DOMAIN']
@@ -34,7 +35,7 @@ def testing(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
 
 def printit():
     print(datetime.datetime.now())
-    print("local ip {} and dns dig {}".format(getip(), dig()))
+    print("local ip {} and dns dig {}".format(getip(), resolve()))
 
 
 def getip():
@@ -57,32 +58,38 @@ def dig(domain=DOMAIN):
         return(err.decode('utf-8'))
 
 
+def resolve(domain=DOMAIN):
+    '''function to use dnspython instead of dig'''
+    answers =  dns.resolver.resolve('slickpockets.dev', 'A')
+    for rdata in answers:
+        return(rdata)
+
+
 
 def update(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
     '''update digital ocean domain form id list'''
     #create connection
-    connection = digitalocean.Domain(token=token, name=domain)
+    connection = digitalocean.Domain(token=TOKEN, name=DOMAIN)
     #get records
     records = connection.get_records()
     #id is passed to return at the end, sets to true if its updated, otherwise its false, so you can check if its passed successfully
     id = None
+    state = None
     #loop thru records
     for r in records:
         #if the dns entry id number matches a  number in the id list, it will udpate it with the getip() funciton
-        if r.id in id_list:
+        if r.id in ID_LIST:
             r.data = getip()
             r.save()
-            id = True
-        elif r is records[-1]:
-            #prints nothing
-            id = False
-    #return true to handle logic
-    return(id)
+            state = True
+        else:
+            return(False)
+    return(state)
 
 
 def check(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
     '''function to check local and dns ip address'''
-    if getip() == dig():
+    if getip() == resolve():
         return(True)
     else:
         return(False)
@@ -99,7 +106,7 @@ def main(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
         if pushupdate == True:
             #cathcing weather there was a problem
             print("no update made to {} domain".format(domain))
-        elif pushupdate == False:
+        elif pushupdat  e == False:
             #here we go
             print("updated {} to new address".format(domain))
 

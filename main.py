@@ -106,7 +106,7 @@ def main(domain=DOMAIN, id_list=ID_LIST, token=TOKEN):
         if pushupdate == True:
             #cathcing weather there was a problem
             print("no update made to {} domain".format(domain))
-        elif pushupdat  e == False:
+        elif pushupdate == False:
             #here we go
             print("updated {} to new address".format(domain))
 
